@@ -30,4 +30,6 @@ Ngoài ra, bạn cũng có thể gán một func vào một biến và gọi ch�
 ```
 Trông có vẻ tuyệt! Chúng ta có thể tạo ra một khối logic concurrent (concurrent block of logic) với một function và một từ khoá đơn giản. Tin nổi không, nó là tất cả những gì bạn cần biết để có thể tạo ra và bắt đầu với goroutines. Có rất nhiều điều để nói về cách sử dụng chúng đúng cách, đồng bộ và sắp xếp chúng, nhưng đây là tất cả những gì bạn cần biết để bắt đầu sử dụng chúng. Tiếp theo đây chúng ta sẽ đi sâu hơn về goroutines và tìm hiểu về cách chúng hoạt động. Nếu bạn chỉ quan tâm đến cách viết code để nó hoạt động bình thường với goroutines, bạn có thể cân nhắc đến việc dừng lại.
 
+Vì vậy hãy xem xét xem điều gì đang xảy ra ở phía sau tại đây: Làm thế nào để goroutines thực sự hoạt động? Có phải là OS threads không? Green threads? Và chúng ta có thể tạo ra bao nhiêu?
+
 
