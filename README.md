@@ -32,4 +32,6 @@ Trông có vẻ tuyệt! Chúng ta có thể tạo ra một khối logic concurr
 
 Vì vậy hãy xem xét xem điều gì đang xảy ra ở phía sau tại đây: Làm thế nào để goroutines thực sự hoạt động? Có phải là OS threads không? Green threads? Và chúng ta có thể tạo ra bao nhiêu?
 
+Goroutines là duy nhất của Go mặc dù có một số ngôn ngữ khác cũng có concurrency primitive tương tự như vậy. Chúng không phải là OS threads, và cũng không chính xác là green threads - được quản lý bởi thời gian chạy của một ngôn ngữ, chúng là một cấp độ trừu tượng cao hơn được biết đến là ***coroutines***. Coroutines chỉ đơn giản là các chương trình con chạy đồng thời với nhau không mang tính ưu tiên (concurrent subroutines), điều đó có nghĩa là chúng không thể bị gián đoạn.
 
+Điều làm cho các goroutines trở nên độc đáo duy nhất đối với Go lfa sự tích hợp sâu bên trong của chúng với Go runtime. Goroutines không xác địng điểm tạm dừng hay việc thử lại của chính nó; Go's runtime sẽ quan sát hành vi thời gian chạy của goroutines và tự động tạm dừng chúng khi chúng bị khoá và sau đó tiếp tục khi chúng được mở khoá, theo một cách nào đó đã làm chúng được xử lý trước, nhưng chỉ ở những chỗ mà goroutine đã bị khoá. Nó là một mối quan hệ hợp tác thanh lịch giữa runtime và logic của một goroutine. Như vậy, các goroutines có thể được xem xét như là một lớp đặc biệt của coroutine (a special class of coroutine).
