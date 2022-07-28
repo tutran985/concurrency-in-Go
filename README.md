@@ -5,28 +5,28 @@
 
 Nói một cách đơn giản, một goroutine là một function đang chạy đồng thời cùng với code khác (hãy nhớ rằng: *not necessarily in parallesl!*). Bạn có thể bắt đầu một cách đơn giản bằng cách đặt từ khoá **go** trước function:
 ```go
-  func main() {
-    go sayHello()
-    // continue doing other things
-  }
-  func sayHello() {
-    fmt.Println("hello")
-  }
+    func main() {
+        go sayHello()
+        // continue doing other things
+    }
+    func sayHello() {
+        fmt.Println("hello")
+    }
 ```
 Function ẩn danh cũng sẽ hoạt động! đây là một ví dụ thực hiện điều tương tự như ở ví dụ trên, tuy nhiên, thay vì tạo một goroutine từ một function, chúng tôi sẽ tạo từ một function ẩn danh:
 ```go
-  go function() {
-    fmt.Println("hello")
-  }() // lưu ý rằng ở đây chúng ta phải gọi func ngay lập tức để sử dụng được từ khoá go
-  // continue doing other things
+    go function() {
+        fmt.Println("hello")
+    }() // lưu ý rằng ở đây chúng ta phải gọi func ngay lập tức để sử dụng được từ khoá go
+    // continue doing other things
 ```
 Ngoài ra, bạn cũng có thể gán một func vào một biến và gọi chúng như thế này:
 ```go
-  sayHello := func() {
-    fmt.Println("hello")
-  }
-  go sayHello()
-  // continue doing other things
+    sayHello := func() {
+        fmt.Println("hello")
+    }
+    go sayHello()
+    // continue doing other things
 ```
 Trông có vẻ tuyệt! Chúng ta có thể tạo ra một khối logic concurrent (concurrent block of logic) với một function và một từ khoá đơn giản. Tin nổi không, nó là tất cả những gì bạn cần biết để có thể tạo ra và bắt đầu với goroutines. Có rất nhiều điều để nói về cách sử dụng chúng đúng cách, đồng bộ và sắp xếp chúng, nhưng đây là tất cả những gì bạn cần biết để bắt đầu sử dụng chúng. Tiếp theo đây chúng ta sẽ đi sâu hơn về goroutines và tìm hiểu về cách chúng hoạt động. Nếu bạn chỉ quan tâm đến cách viết code để nó hoạt động bình thường với goroutines, bạn có thể cân nhắc đến việc dừng lại.
 
@@ -41,7 +41,39 @@ Coroutines, và do đó goroutines, là cấu trúc hoàn toàn đồng thời (
 Cơ chế của Go để lưu trữ các goroutines là một việc triển khai cái được gọi là bộ lập lịch M:N. Có nghĩa là nó ánh xạ M green threads to N OS threads. Goroutines sau đó được đặt lịch trên các green threads. Khi chúng ta có nhiều goroutines hơn green threads đang sẵn có, thì bộ lập lịch (the scheduler) sẽ xử lý phân phối các goroutines trên các threads sẵn có và đảm bảo rằng khi các goroutines này bị chặn, thì các goroutines khác sẽ có thể chạy. Chúng ta sẽ thảo luận về tất cả các cái này hoạt động ở chương tiếp theo, nhưng ở đây chúng ta sẽ đề cập đến mô hình Go concurrency (Go models concurrency).
 
 Go theo một mô hình của concurrency có tên là ***fork-join*** model. Từ ***fork*** trên thực tế đề cập đến là tại bất kì thời điểm nào trong chương trình, nó có thể tách ra thành một nhánh con để chạy đồng thời với cha của nó. Từ ***join*** đề cập đến là vào một vài thời điểm nào đó trong tương lai, các nhánh đã tách ra chạy đồng thời với cha của nó sẽ kết hợp lại với nhau. Khi đó những đứa nhánh con sẽ tham gia lại cùng với cha của nó và được gọi là một ***join point***. Dưới đây là một biểu đồ hoạ giúp bạn có thể hình dung nó:
+
 <p align="center">
 <img style="display: block;margin: 0 auto;width: 50%;" alt="Screen Shot 2022-07-29 at 00 45 45" src="https://user-images.githubusercontent.com/32538318/181603869-d24d8de2-4a8c-4426-9bad-6b07194d351b.png">
 </p>
+
+Câu lệnh Go là cách Go biểu diễn một fork, và các forker threads thực thi là các goroutines. Hãy quay lại về ví dụ goroutine đơn giản của chúng tôi:
+
+```go
+    sayHello := func() {
+        fmt.Println("hello")
+    }
+    go sayHello()
+    // continue doing other things
+```
+Ở đây, func sayHello sẽ được chạy trên goroutine của riêng nó, trong khi phần còn lại của trương chình tiếp tục thực hiện. Trong ví dụ này, nó không phải là join point. Goroutine thực thi sayHello sẽ thoát ở một thời điểm không xác định nào đó trong tương lai, và phần còn lại của trương chình sẽ tiếp tục được thực thi.
+
+Tuy nhiên, có một vấn đề với ví dụ này; như đã viết, nó sẽ không xác định được liệu func sayHello có được chạy hay không. Goroutine sẽ được tạo và được lên lịch với Go's runtime được thực thi, nhưng nó có thể không thực sự có cơ hội được thực thi khi quy trình chính thoát ra.
+
+Thật vậy, bởi vì chúng tôi đã bỏ qua phần còn lại của phần còn lại của hàm chính (main function) để đơn giản hoá ví dụ, khi chúng tôi chạy ví dụ nhỏ này, nó gần như chắc chắn rằng hầu hết chương trình sẽ hoàn thành quá trình thực thi trước khi goroutine lưu trữ lệnh gọi hàm sayHello được bắt đầu. Kết quả là bạn sẽ không thấy được chữ "hello" được in ra. Bạn có thể đặt time.Sleep trước khi bạn khởi tạo goroutine, nhưng hãy nhớ rằng điều này không thực sự tạo ra một join point, nó chỉ là một "race condition". Join point là yếu tố đảm bảo tính đúng đắn của chương trình của chúng tôi và loại bỏ các race condition.
+
+Để tạo một join point, bạn có làm cho luồng chính (main goroutine) và sayHello goroutine đồng bộ hoá với nhau. Điều này có thể thực hiện trong một vài cách, nhưng tôi sẽ sử dụng một cách mà chúng tôi sẽ nói về nó trong `"The Sync Package"`: **sync.WaitGroup**. Ngay bây giờ bạn không cần thực sự hiểu cái cách tạo ra một join point, đây là một phiên bản chính xác của ví dụ của chúng tôi:
+
+```go
+    var wg sync.WaitGroup 
+    sayHello := func() {
+        defer wg.Done()
+        fmt.Println("hello")
+    }  
+    wg.Add(1)
+    go sayHello()
+    wg.Wait() // => đây chính là join point
+```
+Kết quả trả ra:
+`hello`
+
 
