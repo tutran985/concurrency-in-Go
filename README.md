@@ -41,6 +41,7 @@ Coroutines, và do đó goroutines, là cấu trúc hoàn toàn đồng thời (
 Cơ chế của Go để lưu trữ các goroutines là một việc triển khai cái được gọi là bộ lập lịch M:N. Có nghĩa là nó ánh xạ M green threads to N OS threads. Goroutines sau đó được đặt lịch trên các green threads. Khi chúng ta có nhiều goroutines hơn green threads đang sẵn có, thì bộ lập lịch (the scheduler) sẽ xử lý phân phối các goroutines trên các threads sẵn có và đảm bảo rằng khi các goroutines này bị chặn, thì các goroutines khác sẽ có thể chạy. Chúng ta sẽ thảo luận về tất cả các cái này hoạt động ở chương tiếp theo, nhưng ở đây chúng ta sẽ đề cập đến mô hình Go concurrency (Go models concurrency).
 
 Go theo một mô hình của concurrency có tên là ***fork-join*** model. Từ ***fork*** trên thực tế đề cập đến là tại bất kì thời điểm nào trong chương trình, nó có thể tách ra thành một nhánh con để chạy đồng thời với cha của nó. Từ ***join*** đề cập đến là vào một vài thời điểm nào đó trong tương lai, các nhánh đã tách ra chạy đồng thời với cha của nó sẽ kết hợp lại với nhau. Khi đó những đứa nhánh con sẽ tham gia lại cùng với cha của nó và được gọi là một ***join point***. Dưới đây là một biểu đồ hoạ giúp bạn có thể hình dung nó:
-<img width="288" alt="Screen Shot 2022-07-29 at 00 45 45" src="https://user-images.githubusercontent.com/32538318/181603869-d24d8de2-4a8c-4426-9bad-6b07194d351b.png">
-
+<p align="center">
+<img style="display: block;margin: 0 auto;width: 50%;" alt="Screen Shot 2022-07-29 at 00 45 45" src="https://user-images.githubusercontent.com/32538318/181603869-d24d8de2-4a8c-4426-9bad-6b07194d351b.png">
+</p>
 
