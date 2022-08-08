@@ -1,6 +1,6 @@
 # Concurrency in Go
 
-## 1. Go's Concurrency Building Blocks
+# 3. Go's Concurrency Building Blocks
 `Goroutines` là một trong những đơn vị tổ chức cơ bản nhất trong chương trình Go, vì vậy điều quan trọng chúng ta phải hiểu chúng là gì và các chúng hoạt động như thế nào. Trong thực tế trong mỗi Go program đều có ít nhất một goroutine: *the main goroutine*, nó được tạo tự động và bắt đầu khi quá trình bắt đầu. Trong hầu hết mọi chương trình bạn có thể sớm hoặc muộn tìm đến goroutine để hỗ trợ bạn giải quyết vấn đề. Vậy tóm lại chúng là gì?
 
 Nói một cách đơn giản, một goroutine là một function đang chạy đồng thời cùng với code khác (hãy nhớ rằng: *not necessarily in parallesl!*). Bạn có thể bắt đầu một cách đơn giản bằng cách đặt từ khoá **go** trước function:
@@ -76,5 +76,99 @@ Thật vậy, bởi vì chúng tôi đã bỏ qua phần còn lại của phần
 Kết quả trả ra:
 `hello`
 
+Ví dụ này sẽ chặn một cách rõ ràng goroutine chính cho đến khi goroutine chứa function sayHello chạy xong. Bạn sẽ tìm hiểu cách sync.WaiGroup hoạt động như thế nào trong `"The Sync Package"`, nhưng để làm cho ví dụ của chúng tôi chính xác. Tôi sẽ bắt đầu sử dụng nó để tạo **join point**.
+
+Chúng tôi đã và đang sử dụng rất nhiều những hàm ẩn danh (anonymous functions) trong ví dụ của chúng tôi để tạo ra những ví dụ đơn giả về goroutine. Ở đây chúng ta có một ví dụ:
+
+```go
+    var wg sync.WaitGroup
+    salutation := "hello"
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+        salutation = "welcome" // ở đây chúng ta thấy goroutine sửa đổi giá trị của biến salutation
+    }()
+    wg.Wait()
+    fmt.Println(salutation)
+```
+
+Bạn nghĩ rằng giá trị của biến salutation sẽ được thay đổi thành gì là "hello" hay là "welcome"? Hãy chạy nó là tìm ra đáp án `welcome`
+
+Thú vị! Nó chỉ ra rằng các goroutines thực thi trong cùng một không gian địa chỉ mà chúng đã được tạo ra, và
+chương trình của chúng ta đã in ra từ "welcome". Hãy thử lại với ví dụ khác. Bạn nghĩ rằng kết quả trả ra của chương trình này là gì?
+```go 
+    var wg sync.WaitGroup
+    for _, salutation := range []string{"hello", "greetings", "good day"} {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            fmt.Println(salutation)
+        }()
+    }
+    wg.Wait()
+```
+
+Đáp án có thể khó hơn mọi người mong đợi, và nó cũng là một trong vài điều đáng ngạc nhiên của Go. Hầu hết mọi người nghĩ rằng kết quả sẽ là "hello", "greetings", "good day" với những vị trí không xác định, nhưng kết quả lại là:
+```txt
+good day
+good day
+good day
+```
+
+Điều đó thật ngạc nhiên! Hãy tìm hiểu xem điều gì đang xảy ra ở đây. Trong ví dụ này, ***bỏ qua chán chả muốn viết***
 
 
+## 3.1. The Sync Package
+The Sync Package chứa các concurrency primitives hữu ích nhất để đồng bộ hoá truy cập bộ nhớ cấp thấp. Nếu bạn đã từng làm việc bằng các ngôn ngữ chủ yếu xử lý đồng thời thông qua đồng bộ hoá quyền truy cập bộ nhớ, những loại này có thể đã quen thuộc với bạn. Chúng ta hãy đi xem các primitives khác nhau mà gói thư viện sync đưa ra:
+
+
+###### 3.1.1. WaitGroup
+`WaitGroup` là một cách tốt để chờ đợi cho một tập hợp các hoạt động đồng thời cho đến khi hoàn thành khi bạn không quan tâm đến kết quả của hoạt động đồng thời, hay bạn có những phương tiện khác để thu thập kết quá của họ. Nếu cả hai điểu kiện đó đều đúng, tôi đề xuất bạn sử dụng channels và một select để thay thế. WaitGroup rất hữu ích, tôi giới thiệu nó đầu tiên bởi vì tôi có thể sử dụng nó trong tất cả phần tiếp theo. Đây là một ví dụ cơ bản sử dụng waitGroup để chời đợi các goroutines hoàn thành:
+```go
+    var wg sync.WaitGroup
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+        fmt.Println("1st goroutine sleeping...")
+        time.Sleep(1)
+    }()
+    
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+        fmt.Println("2nd goroutine sleeping...")
+        time.Sleep(2)
+    }()
+    wg.Wait()
+    fmt.Println("All goroutines complete.")
+```
+This produces: 
+```txt
+2nd goroutine sleeping...
+1st goroutine sleeping...
+All goroutines complete.
+```
+
+exp2:
+```go
+    hello := func(wg *sync.WaitGroup, id int) {
+        defer wg.Done()
+        fmt.Printf("Hello from %v!\n", id)
+    }
+    const numGreeters = 5
+    var wg sync.WaitGroup
+    wg.Add(numGreeters)
+    for i := 0; i < numGreeters; i++ {
+        go hello(&wg, i+1)
+    }
+    wg.Wait()
+```
+This produces:
+```txt
+Hello from 5!
+Hello from 4!
+Hello from 3!
+Hello from 2!
+Hello from 1!
+```
+###### 3.1.2. Mutex and RWMutex
