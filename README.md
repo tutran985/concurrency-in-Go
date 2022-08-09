@@ -221,5 +221,19 @@ Chúng tôi cũng có 1 phương pháp mới trong ví dụ này, Signal. Đó l
 	clickRegistered.Wait()
 
     // 2: chúng tôi xác định 1 convenience func nó sẽ cho phép chúng tôi đăng ký func để xử lý tín hiệu từ 1 condition. Mỗi handler sẽ chạy trên goroutine của riêng nó, và subscribe sẽ không thoát cho đến khi gouroutine đó được xác nhận là đang chạy.
-    // 3: Chúng tôi tạo ra một WaitGroup. Điều này 
+    // 3: Chúng tôi tạo ra một WaitGroup. Điều này chỉ được thực hiện để đảm bảo chương trình của chúng tôi không thoát ra trước khi quá trình ghi vào stdout của chúng tôi xảy ra
+    // 4: chúng tôi đăng ký 1 handler để mô phỏng tối đa hoá cửa sổ button khi được clicked
+    // 5: Chúng tôi đăng ký 1 handler để mô phỏng hiển thị 1 hộp thoại khi clicked
+    // 6: Tieesp theo, chúng tôi mô phỏng người dùng di chuyển chuột sau khi clicked vào application's button
+    // 7: Gọi Broadcast trên cliecked Cond để cho tất cả các trình xử lý biết rằng đã được nhấp
 ```
+This produces:
+```txt
+    Mouse clicked.
+    Maximizing window.
+    Displaying annoying dialog box!
+```
+
+Bạn có thể thấy rằng với một lệnh gọi đến Broadcast trên Clicked Cond, tất cả 3 trình xử lý đã được chạy, nó không dành cho clickRegistered WaitGroup, chúng tôi có thể gọi button.Clicked.Broadcast() nhiều lần, và mỗi lần tất cả 3 handlers đều sẽ được gọi. Đây là điều mà các channel không thể làm dễ dàng và do đó là một trong những lý do chính để sử dụng Cond.
+
+Giống như những thứ khác trong sync package, cách sử dụng của Cond hoạt động thực sự tốt nhất khi bị bó buộc trong 1 phạm vi hẹp
