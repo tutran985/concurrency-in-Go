@@ -172,3 +172,54 @@ Hello from 2!
 Hello from 1!
 ```
 ###### 3.1.2. Mutex and RWMutex
+
+
+// cond
+
+Lưu ý rằng call Wait
+
+Như bạn có thể thấy, chương trình đã thêm thành công 10 items vào queue (và thoát trước khi nó thay đổi dequeue the last two items). Nó luôn luôn chờ cho đến khi ít nhất một item là dequeued trước enqueing khác.
+
+Chúng tôi cũng có 1 phương pháp mới trong ví dụ này, Signal. Đó là một trong hai phương thức mà Cond cung cấp để thông báo các goroutines đã được blocked trong Wait rằng condition đã được kích hoạt. Phương thức khác này có tên là Broadcast. Thời gian chạy duy trì một danh sách goroutines đang chờ đợi được báo hiệu; Signal tìm kiếm goroutine chờ đợi lâu nhất và thông báo rằng, trong khi đó Broadcast gửi tín hiệu cho tất cả các goroutines còn lại đang chờ đợi. Broadcast được cho là thú vị hơn nhiều trong hai phương thức vì nó cung cấp một cách để có thể giao tiếp với nhiều goroutines cùng lúc. Chúng tôi có thể tái tạo Signal một cách đáng kinh ngạc với Channel (chúng ta có thể xem trong phần "Channels"), nhưng việc tái tạo hành vi của các cuộc gọi lặp đi lặp lại tới Broadcast sẽ khó hơn nhiều. Ngoài ra, Cond có hiệu suất cao hơn nhiều so với việc sử dụng channels.
+
+Để có cảm nhận về việc sử dụng Broadcast như thế nào, Hãy thử tượng tượng chúng ta đang tạo ra một ứng dụng GUI với một nút button ở trên đó. Chúng tôi muốn đăng ký một vài chức năng bất kì sẽ được chạy khi nút button được bấm. Cond hoàn hảo cho điều đó bởi vì chúng tôi có thể dùng tới Broadcast để thông báo tới tất cả các registed handlers. Nào hãy xem nó trông như thế nào:
+
+```go
+    type Button struct { // xác định 1 loại Button có chứa 1 condition, Clicked
+		Clicked *sync.Cond
+	}
+	button := Button{Clicked: sync.NewCond(&sync.Mutex{})}
+	subscribe := func(c *sync.Cond, fn func()) { // 2
+		var goroutineRunning sync.WaitGroup
+		goroutineRunning.Add(1)
+		go func() {
+			goroutineRunning.Done()
+			c.L.Lock()
+			defer c.L.Unlock()
+			c.Wait()
+			fn
+            fn()
+
+		}()
+		goroutineRunning.Wait()
+	}
+	var clickRegistered sync.WaitGroup // 3
+	clickRegistered.Add(3)
+	subscribe(button.Clicked, func() { // 4 
+		fmt.Println("Maximizing window.")
+		clickRegistered.Done()
+	})
+	subscribe(button.Clicked, func() { // 5
+		fmt.Println("Displaying annoying dialog box!")
+		clickRegistered.Done()
+	})
+	subscribe(button.Clicked, func() { // 6
+		fmt.Println("Mouse clicked.")
+		clickRegistered.Done()
+	})
+	button.Clicked.Broadcast() // 7
+	clickRegistered.Wait()
+
+    // 2: chúng tôi xác định 1 convenience func nó sẽ cho phép chúng tôi đăng ký func để xử lý tín hiệu từ 1 condition. Mỗi handler sẽ chạy trên goroutine của riêng nó, và subscribe sẽ không thoát cho đến khi gouroutine đó được xác nhận là đang chạy.
+    // 3: Chúng tôi tạo ra một WaitGroup. Điều này 
+```
